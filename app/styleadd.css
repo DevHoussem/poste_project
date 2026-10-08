@@ -1,0 +1,138 @@
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f2f4f7;
+}
+
+.navbar {
+    background: #222;
+    color: white;
+    padding: 18px 30px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 35px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+h1 {
+    margin-bottom: 30px;
+}
+
+.message {
+    background: #dff6e5;
+    color: #187a35;
+    padding: 12px;
+    border-radius: 7px;
+    margin-bottom: 20px;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    font-size: 15px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #555;
+}
+.total {
+    margin-top: 25px;
+    padding: 15px;
+    background: #f0f0f0;
+    border-radius: 7px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+button {
+    margin-top: 25px;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 7px;
+    background: #222;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #444;
+}
+
+@media(max-width: 650px) {
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+.total {
+    margin-top: 25px;
+    padding: 15px;
+    background: #f0f0f0;
+    border-radius: 7px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+button {
+    margin-top: 25px;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 7px;
+    background: #222;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #444;
+}
+
+@media(max-width: 650px) {
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+ legend {
+            font-weight: bold;
+            padding: 0 10px;
+        }
