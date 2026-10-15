@@ -162,6 +162,43 @@ tr:hover {
     margin-bottom: 20px;
 }
 
+.filter-form {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-form input {
+    padding: 9px;
+}
+
+.filter-form button,
+.filter-form a {
+    background: #222;
+    border: 0;
+    border-radius: 7px;
+    color: white;
+    cursor: pointer;
+    margin: 0;
+    padding: 10px 14px;
+    text-decoration: none;
+    width: auto;
+}
+
+td form {
+    display: inline;
+}
+
+td form button {
+    background: #922;
+    font-size: 13px;
+    margin: 4px 0 0;
+    padding: 7px 10px;
+    width: auto;
+}
+
 @media(max-width: 900px) {
 
     .cards {

@@ -1,17 +1,6 @@
 <?php
-session_start();
-$host = "localhost";
-$dbname = "poste_bd";
-$username = "root";
-$password = "";
-# a pdo that communicates with database
-try {
+require_once __DIR__ . "/../../config/config.php";
 
-    $pdo= new PDO("mysql:host=$host;dbname=$dbname",$username,$password);
-
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
-}
 $error = "";
 $success = "";
 
@@ -20,55 +9,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST["email"] ?? "");
     $password = $_POST["password"] ?? "";
     $confirm_password = $_POST["confirm_password"] ?? "";
-    #checking if account exists
     $pre = $pdo->prepare(
         "SELECT *
          FROM admins
          WHERE email = :email"
     );
-    #executing the query
+
     $pre->execute([
         ":email" => $email
     ]);
-    #fetching the array 
-        $admin = $pre->fetch(PDO::FETCH_ASSOC);
-    #checking name,email and password
+
+    $admin = $pre->fetch(PDO::FETCH_ASSOC);
+
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
 
         $error = "Please fill in all fields.";
 
-    }elseif ($password !== $confirm_password) {
-        $error=" verify password"; 
-    }elseif (
+    } elseif ($password !== $confirm_password) {
+        $error = " verify password";
+    } elseif (
         $admin &&
         password_verify($password, $admin["password"])
-    ){  $error="you already have account";
-    }
-     else {
-#hashing password
-        $hashedpassword = password_hash($password,PASSWORD_DEFAULT);
+    ) {
+        $error = "you already have account";
+    } else {
+        $hashedpassword = password_hash($password, PASSWORD_DEFAULT);
 
-#preparing the sql query and inserting data
-            $sql = "INSERT INTO admins
+        $sql = "INSERT INTO admins
                 (username, email, password)
                 VALUES
                 (:username, :email, :password)";
-            $pre = $pdo->prepare($sql);
-#executing the query
-            $pre->execute([
-                 ":username" => $username,
-                ":email" => $email,
-                ":password" => $hashedpassword
-            ]);
-            $success = "Registration successful!";
-}
+
+        $pre = $pdo->prepare($sql);
+        $pre->execute([
+            ":username" => $username,
+            ":email" => $email,
+            ":password" => $hashedpassword
+        ]);
+        $success = "Registration successful!";
+    }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../style/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>register un compte</title>
 </head>

@@ -1,70 +1,44 @@
 <?php
-session_start();
+require_once __DIR__ . "/auth/auth.php";
+require_once __DIR__ . "/operations.php";
 
-if (!isset($_SESSION['admin'])) {
-    header("Location: sign_in.php");
-    exit();
-}
-
-$host = "localhost";
-$dbname = "poste_bd";
-$username = "root";
-$password = "";
-try {
-
-    $pdo= new PDO("mysql:host=$host;dbname=$dbname",$username,$password);
-
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
-}
-$message="";
+$message = "";
+$error = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $date= $_POST["date_operation"];
-    $paiement_mandats = (int) $_POST["paiement_mandats"];
-    $emission_mandat=(int) $_POST["emission_mandats"];
-    $retrait_ccp = (int) $_POST["retrait_ccp"];
-    $versement_ccp = (int) $_POST["versement_ccp"];
-    $retrait_carnet = (int) $_POST["retrait_carnet"];
-    $versement_carnet = (int) $_POST["versement_carnet"];
-    $western_union = (int) $_POST["western_union"];
-    $total_operations =$paiement_mandats+$emission_mandat+$retrait_ccp+$versement_ccp+$retrait_carnet+$versement_carnet+$western_union;
-    $sql = "INSERT INTO operations(date_operation,paiement_mandat,emission_mandat,retrait_ccp,versement_ccp,retrait_carnet,versement_carnet,western_union,total_operations)
-     values(:date_operation, :paiement_mandat, :emission_mandat, :retrait_ccp, 
-            :versement_ccp, :retrait_carnet, :versement_carnet, :western_union, :total_operations)";       
-    
-    $pre=$pdo->prepare($sql);
-    $pre->execute([
-    'date_operation'   => $date,
-    'paiement_mandat'  => $paiement_mandats,
-    'emission_mandat'  => $emission_mandat,
-    'retrait_ccp'      => $retrait_ccp,
-    'versement_ccp'    => $versement_ccp,
-    'retrait_carnet'   => $retrait_carnet,
-    'versement_carnet' => $versement_carnet,
-    'western_union'    => $western_union,
-    'total_operations' => $total_operations
-    ]);
+    try {
+        $values = operationInput($_POST);
+        $sql = "INSERT INTO operations
+            (date_operation, paiement_mandat, emission_mandat, retrait_ccp,
+             versement_ccp, retrait_carnet, versement_carnet, western_union,
+             total_operations)
+            VALUES
+            (:date_operation, :paiement_mandat, :emission_mandat, :retrait_ccp,
+             :versement_ccp, :retrait_carnet, :versement_carnet, :western_union,
+             :total_operations)";
 
-    
-    header("Location: dashboard.php");
-    
-    exit();
+        $pre = $pdo->prepare($sql);
+        $pre->execute($values);
+        header("Location: dashboard.php");
+        exit();
+    } catch (InvalidArgumentException $exception) {
+        $error = $exception->getMessage();
+    }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="styleadd.css">
+    <link rel="stylesheet" href="../style/styleadd.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Operations</title>
 </head>
 <body>
     <div class="navbar">
     <strong>Poste Tunisienne</strong>
         <div>
             <a href="dashboard.php">Dashboard</a>
-            <a href="sign_in.php">Sign out</a>
+            <a href="auth/sign_in.php">Sign out</a>
         </div>
     </div>
     <div class="container">
@@ -72,6 +46,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php if ($message): ?>
     <div class="message">
         <?= htmlspecialchars($message) ?>
+    </div>
+    <?php endif; ?>
+    <?php if ($error): ?>
+    <div class="message">
+        <?= htmlspecialchars($error) ?>
     </div>
     <?php endif; ?>
     <form method="post">
@@ -88,11 +67,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <legend>Mandats</legend>
             <div class="form-group">
                 <label for="paiement_mandats">Paiement Mandats:</label>
-                <input type="number" id="paiement_mandats" name="paiement_mandats" value="0" min="0" required>
+                <input type="number" id="paiement_mandats" name="paiement_mandat" value="0" min="0" required>
             </div>
             <div class="form-group">
                 <label for="emission_mandats">Emission Mandats:</label>
-                <input type="number" id="emission_mandats" name="emission_mandats" value="0" min="0" required>
+                <input type="number" id="emission_mandats" name="emission_mandat" value="0" min="0" required>
             </div>
         </fieldset>
 

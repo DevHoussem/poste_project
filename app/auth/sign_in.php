@@ -1,17 +1,5 @@
 <?php
-session_start();
-$host = "localhost";
-$dbname = "poste_bd";
-$username = "root";
-$password = "";
-# a pdo that communicates with database
-try {
-
-    $pdo= new PDO("mysql:host=$host;dbname=$dbname",$username,$password);
-
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
-}
+require_once __DIR__ . "/../../config/config.php";
 $error="";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -41,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION["admin_id"] = $admin["id"];
         $_SESSION["admin_username"] = $admin["username"];
 
-        header("Location: dashboard.php");
+        header("Location: ../dashboard.php");
         exit();
 
     } else {
@@ -55,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../style/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>

@@ -1,22 +1,36 @@
 <?php
-session_start();
+require_once __DIR__ . "/auth/auth.php";
+require_once __DIR__ . "/operations.php";
 
-if (!isset($_SESSION['admin'])) {
-    header("Location: sign_in.php");
-    exit();
-}
-
-$host = "localhost";
-$dbname = "poste_bd";
-$username = "root";
-$password = "";
+$filterError = "";
 try {
-
-    $pdo= new PDO("mysql:host=$host;dbname=$dbname",$username,$password);
-
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+    $filters = operationFilters($_GET);
+} catch (InvalidArgumentException $exception) {
+    $filters = ["date_start" => "", "date_end" => ""];
+    $filterError = $exception->getMessage();
 }
+
+$page = max(1, (int) ($_GET["page"] ?? 1));
+$pageSize = 10;
+$conditions = [];
+$parameters = [];
+if ($filters["date_start"] !== "") {
+    $conditions[] = "date_operation >= :date_start";
+    $parameters["date_start"] = $filters["date_start"];
+}
+if ($filters["date_end"] !== "") {
+    $conditions[] = "date_operation <= :date_end";
+    $parameters["date_end"] = $filters["date_end"];
+}
+$whereClause = $conditions === [] ? "" : " WHERE " . implode(" AND ", $conditions);
+
+$countStatement = $pdo->prepare("SELECT COUNT(*) FROM operations" . $whereClause);
+$countStatement->execute($parameters);
+$operationCount = (int) $countStatement->fetchColumn();
+$pageCount = max(1, (int) ceil($operationCount / $pageSize));
+$page = min($page, $pageCount);
+$offset = ($page - 1) * $pageSize;
+
 /* staistics */
 # total operations
 $total_operations = $pdo->query(
@@ -63,21 +77,30 @@ $days=$pdo->query(
     "SELECT COUNT(*)
      FROM operations"
 )->fetchColumn();
-#recent operations
-$pre = $pdo->query(
+#filtered operations
+$pre = $pdo->prepare(
     "SELECT *
-     FROM operations
-     ORDER BY date_operation DESC
-     LIMIT 10"
+     FROM operations" . $whereClause . "
+     ORDER BY date_operation DESC, id DESC
+     LIMIT :limit OFFSET :offset"
 );
-$operations= $pre->fetchAll(PDO::FETCH_ASSOC);
+foreach ($parameters as $name => $value) {
+    $pre->bindValue(":$name", $value);
+}
+$pre->bindValue(":limit", $pageSize, PDO::PARAM_INT);
+$pre->bindValue(":offset", $offset, PDO::PARAM_INT);
+$pre->execute();
+$operations = $pre->fetchAll(PDO::FETCH_ASSOC);
+$csrfToken = ensureCsrfToken();
+$operationError = $_SESSION["operation_error"] ?? "";
+unset($_SESSION["operation_error"]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="script.js"></script>
-    <link rel="stylesheet" href="styledash.css">
+    <script src="../js/script.js"></script>
+    <link rel="stylesheet" href="../style/styledash.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
@@ -93,7 +116,7 @@ $operations= $pre->fetchAll(PDO::FETCH_ASSOC);
             Ajouter
         </a>
 
-        <a href="sign_in.php">
+        <a href="auth/sign_in.php">
             Déconnexion
         </a>
     </div>
@@ -103,6 +126,19 @@ $operations= $pre->fetchAll(PDO::FETCH_ASSOC);
     <a href="add_operation.php" class="add_button">
         add operations +
     </a>
+    <?php if ($filterError || $operationError): ?>
+        <div class="message">
+            <?= htmlspecialchars($filterError ?: $operationError) ?>
+        </div>
+    <?php endif; ?>
+    <form method="get" class="filter-form">
+        <label for="date_start">From</label>
+        <input type="date" id="date_start" name="date_start" value="<?= htmlspecialchars($filters["date_start"]) ?>">
+        <label for="date_end">To</label>
+        <input type="date" id="date_end" name="date_end" value="<?= htmlspecialchars($filters["date_end"]) ?>">
+        <button type="submit">Filter</button>
+        <a href="dashboard.php">Clear</a>
+    </form>
     <div class="cards">
         <div class="card">
             <h3>Total operations</h3>
@@ -135,7 +171,7 @@ $operations= $pre->fetchAll(PDO::FETCH_ASSOC);
     </div>
 <div class="table-container">
 
-<h2>Last operations</h2>
+<h2>Operations</h2>
 <table>
     <thead>
     <tr>
@@ -148,6 +184,7 @@ $operations= $pre->fetchAll(PDO::FETCH_ASSOC);
     <th>versement carnet</th>
     <th>Western Union</th>
     <th>Total</th>
+    <th>Actions</th>
     </tr>
     </thead>
     
@@ -158,98 +195,67 @@ $operations= $pre->fetchAll(PDO::FETCH_ASSOC);
         <?= htmlspecialchars($operation["date_operation"]) ?>
         </td>
         <td>
-        <?= $operation["paiement_mandat"] ?>
+        <?= number_format((int) $operation["paiement_mandat"]) ?>
         </td>
         <td>
-        <?= $operation["emission_mandat"] ?>
+        <?= number_format((int) $operation["emission_mandat"]) ?>
         </td>
         <td>
-        <?= $operation["retrait_ccp"] ?>
+        <?= number_format((int) $operation["retrait_ccp"]) ?>
         </td>
         <td>
-        <?= $operation["versement_ccp"] ?>
+        <?= number_format((int) $operation["versement_ccp"]) ?>
         </td>
         <td>
-        <?= $operation["retrait_carnet"] ?>
+        <?= number_format((int) $operation["retrait_carnet"]) ?>
         </td>
         <td>
-        <?= $operation["versement_carnet"] ?>
+        <?= number_format((int) $operation["versement_carnet"]) ?>
         </td>
         <td>
-        <?= $operation["western_union"] ?>
+        <?= number_format((int) $operation["western_union"]) ?>
         </td>
         <td>
         <strong>
-        <?= $operation["total_operations"] ?>
+        <?= number_format((int) $operation["total_operations"]) ?>
         </strong>
+        </td>
+        <td>
+            <a href="edit_operation.php?id=<?= (int) $operation["id"] ?>">Edit</a>
+            <form method="post" action="delete_operation.php" onsubmit="return confirm('Delete this operation?');">
+                <input type="hidden" name="id" value="<?= (int) $operation["id"] ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                <button type="submit">Delete</button>
+            </form>
         </td>
     </tr>
         <?php endforeach; ?>
+        <?php if ($operations === []): ?>
+        <tr>
+            <td colspan="10">No operations found for the selected dates.</td>
+        </tr>
+        <?php endif; ?>
     </tbody>
 </table>
+<?php if ($pageCount > 1): ?>
+    <nav aria-label="Operation pages">
+        <?php for ($pageNumber = 1; $pageNumber <= $pageCount; $pageNumber++): ?>
+            <a href="?date_start=<?= urlencode($filters["date_start"]) ?>&date_end=<?= urlencode($filters["date_end"]) ?>&page=<?= $pageNumber ?>">
+                <?= $pageNumber ?>
+            </a>
+        <?php endfor; ?>
+    </nav>
+<?php endif; ?>
 
 </div>
     <div class="export-box">
 
     <h2>Export Operations</h2>
 
-    <form method="POST">
-
-        <label>Export type:</label>
-
-        <select name="type" id="exportType" onchange="changeExportType()">
-
-            <option value="all">
-                All operations
-            </option>
-
-            <option value="date">
-                Specific date
-            </option>
-
-            <option value="range">
-                Date range
-            </option>
-
-        </select>
-
-
-        <!-- ONE DATE -->
-
-        <div id="singleDate" style="display:none;">
-
-            <label>Select date:</label>
-
-            <input type="date" name="date">
-
-        </div>
-
-
-        <!-- DATE RANGE -->
-
-        <div id="dateRange" style="display:none;">
-
-            <label>Start date:</label>
-
-            <input type="date" name="date_start">
-
-            <label>End date:</label>
-
-            <input type="date" name="date_end">
-
-        </div>
-        <div>
-            <label>Format:</label>
-            <select name="format">
-            <option value="csv">CSV</option>
-            <option value="pdf">PDF</option>
-            </select>
-        </div>
-
-
-        <button type="submit" name="export">
-            Export CSV
-        </button>
+    <form method="get" action="export_operations.php">
+        <input type="hidden" name="date_start" value="<?= htmlspecialchars($filters["date_start"]) ?>">
+        <input type="hidden" name="date_end" value="<?= htmlspecialchars($filters["date_end"]) ?>">
+        <button type="submit">Export filtered CSV</button>
 
     </form>
 
